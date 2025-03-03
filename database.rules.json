@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "rooms": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "esp_status": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+} 

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "676259818621",
+    "project_id": "smart-radiator-valve",
+    "storage_bucket": "smart-radiator-valve.firebasestorage.app",
+    "firebase_url": "https://smart-radiator-valve-default-rtdb.europe-west1.firebasedatabase.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:676259818621:android:0f75a5b3a607469bf0d514",
+        "android_client_info": {
+          "package_name": "com.firatgunay.smartradiatorvalve"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLonktwem0MllYQeLSmVl5mUkZLxbBGKs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
