@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             Log.e("MainActivity", "Uncaught exception", throwable)
         }
-        
         enableEdgeToEdge()
         setContent {
             SmartRadiatorValveTheme {
@@ -43,13 +42,11 @@ class MainActivity : ComponentActivity() {
                     var isLoggedIn by remember { 
                         mutableStateOf(FirebaseAuth.getInstance().currentUser != null) 
                     }
-
                     // Firebase Auth state listener
                     DisposableEffect(Unit) {
                         val authStateListener = FirebaseAuth.AuthStateListener { auth ->
                             isLoggedIn = auth.currentUser != null
                         }
-                        
                         FirebaseAuth.getInstance().addAuthStateListener(authStateListener)
                         
                         onDispose {
