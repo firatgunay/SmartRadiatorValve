@@ -5,6 +5,7 @@ plugins {
     id("com.google.gms.google-services")
     id("dagger.hilt.android.plugin")
     kotlin("kapt")
+    id("com.google.devtools.ksp") version "2.0.21-1.0.27"
 }
 
 android {
@@ -20,6 +21,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["usesCleartextTraffic"] = true
+
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     buildTypes {
@@ -83,9 +88,23 @@ dependencies {
 
     // Material Icons Extended
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
-}
 
-// Enable kapt
-kapt {
-    correctErrorTypes = true
+    // MQTT
+    implementation ("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+    implementation ("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
+
+    val roomVersion = "2.6.1"
+    
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+
+    implementation  ("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation  ("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation  ("org.tensorflow:tensorflow-lite-metadata:0.4.4")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+
+    // OkHttp
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

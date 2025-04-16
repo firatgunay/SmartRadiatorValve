@@ -1,13 +1,20 @@
 package com.firatgunay.smartradiatorvalve.di
 
+import android.content.Context
+import com.firatgunay.smartradiatorvalve.data.local.AppDatabase
+import com.firatgunay.smartradiatorvalve.data.local.dao.ScheduleDao
+import com.firatgunay.smartradiatorvalve.ml.TemperaturePredictor
+import com.firatgunay.smartradiatorvalve.data.repository.ValveRepository
+import com.firatgunay.smartradiatorvalve.mqtt.MqttClient
+import com.firatgunay.smartradiatorvalve.mqtt.WebSocketClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import com.firatgunay.smartradiatorvalve.data.repository.RoomRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,7 +34,49 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRoomRepository(database: FirebaseDatabase): RoomRepository {
-        return RoomRepository(database)
+    fun provideContext(@ApplicationContext context: Context): Context {
+        return context
+    }
+
+    @Provides
+    @Singleton
+    fun provideMqttClient(@ApplicationContext context: Context): MqttClient {
+        return MqttClient(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        return AppDatabase.getDatabase(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideScheduleDao(database: AppDatabase): ScheduleDao {
+        return database.scheduleDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTemperaturePredictor(
+        @ApplicationContext context: Context
+    ): TemperaturePredictor {
+        return TemperaturePredictor(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideValveRepository(
+        mqttClient: MqttClient,
+        scheduleDao: ScheduleDao,
+        temperaturePredictor: TemperaturePredictor
+    ): ValveRepository {
+        return ValveRepository(mqttClient, scheduleDao, temperaturePredictor)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWebSocketClient(@ApplicationContext context: Context): WebSocketClient {
+        return WebSocketClient(context)
     }
 } 

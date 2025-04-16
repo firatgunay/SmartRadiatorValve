@@ -1,5 +1,6 @@
 package com.firatgunay.smartradiatorvalve.ui.schedule
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.firatgunay.smartradiatorvalve.data.model.DayOfWeek
 import com.firatgunay.smartradiatorvalve.data.model.Schedule
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
     viewModel: ScheduleViewModel = hiltViewModel()
@@ -27,86 +29,98 @@ fun ScheduleScreen(
     val error by viewModel.error.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Günler
-        DaysRow(
-            selectedDay = selectedDay,
-            onDaySelected = { viewModel.setSelectedDay(it) }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Hata mesajı
-        error?.let { errorMessage ->
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(8.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Program") }
             )
         }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            // Günler
+            DaysRow(
+                selectedDay = selectedDay,
+                onDaySelected = { day ->
+                    Log.d("ScheduleScreen", "Seçilen gün: $day")
+                    viewModel.setSelectedDay(day)
+                }
+            )
 
-        // Yükleniyor göstergesi veya program listesi
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Hata mesajı
+            error?.let { errorMessage ->
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(8.dp)
+                )
             }
-        } else {
-            if (schedules.isEmpty()) {
+
+            // Yükleniyor göstergesi veya program listesi
+            if (isLoading) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Bu güne ait program bulunmuyor",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
+                    CircularProgressIndicator()
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(schedules) { schedule ->
-                        ScheduleItem(
-                            schedule = schedule,
-                            onDelete = { viewModel.deleteSchedule(schedule.id) }
+                if (schedules.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Bu güne ait program bulunmuyor",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(schedules) { schedule ->
+                            ScheduleItem(
+                                schedule = schedule,
+                                onDelete = { viewModel.deleteSchedule(schedule.id) }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Program ekle butonu
-        FloatingActionButton(
-            onClick = { showAddDialog = true },
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Program Ekle")
-        }
+            // Program ekle butonu
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Program Ekle")
+            }
 
-        if (showAddDialog) {
-            AddScheduleDialog(
-                selectedDay = selectedDay,
-                onDismiss = { showAddDialog = false },
-                onConfirm = { schedule ->
-                    viewModel.addSchedule(schedule)
-                    showAddDialog = false
-                }
-            )
+            if (showAddDialog) {
+                AddScheduleDialog(
+                    selectedDay = selectedDay,
+                    onDismiss = { showAddDialog = false },
+                    onConfirm = { schedule ->
+                        viewModel.addSchedule(schedule)
+                        showAddDialog = false
+                    }
+                )
+            }
         }
     }
 }
@@ -116,40 +130,43 @@ fun DaysRow(
     selectedDay: Int,
     onDaySelected: (Int) -> Unit
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        items(DayOfWeek.values()) { day ->
-            val isSelected = (day.ordinal + 1) == selectedDay
-            DayButton(
-                day = day,
-                isSelected = isSelected,
-                onClick = { onDaySelected(day.ordinal + 1) }
-            )
+        DayOfWeek.values().forEach { day ->
+            val dayNumber = day.ordinal + 1
+            val isSelected = dayNumber == selectedDay
+            
+            Button(
+                onClick = { 
+                    Log.d("DaysRow", "Tıklanan gün: $dayNumber")
+                    onDaySelected(dayNumber) 
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.surface,
+                    contentColor = if (isSelected) 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text(
+                    text = day.turkishName,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
         }
-    }
-}
-
-@Composable
-fun DayButton(
-    day: DayOfWeek,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    ElevatedButton(
-        onClick = onClick,
-        colors = ButtonDefaults.elevatedButtonColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-        ),
-        modifier = Modifier.width(100.dp)
-    ) {
-        Text(
-            text = day.turkishName,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(4.dp)
-        )
     }
 }
 
