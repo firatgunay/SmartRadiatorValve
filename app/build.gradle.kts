@@ -99,9 +99,9 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
-    implementation  ("org.tensorflow:tensorflow-lite:2.14.0")
-    implementation  ("org.tensorflow:tensorflow-lite-support:0.4.4")
-    implementation  ("org.tensorflow:tensorflow-lite-metadata:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
