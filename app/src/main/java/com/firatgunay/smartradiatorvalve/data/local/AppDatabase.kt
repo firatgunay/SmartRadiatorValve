@@ -5,15 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.firatgunay.smartradiatorvalve.data.local.dao.ScheduleDao
+import com.firatgunay.smartradiatorvalve.data.local.dao.ValveDataDao
 import com.firatgunay.smartradiatorvalve.data.model.Schedule
+import com.firatgunay.smartradiatorvalve.data.model.ValveData
 
 @Database(
-    entities = [Schedule::class],
-    version = 1,
+    entities = [Schedule::class, ValveData::class],
+    version = 2,
     exportSchema = false // Schema export'u devre dışı bırak
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun scheduleDao(): ScheduleDao
+    abstract fun valveDataDao(): ValveDataDao
 
     companion object {
         @Volatile

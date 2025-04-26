@@ -17,6 +17,7 @@ class MqttClient @Inject constructor(
     )
 
     private var messageCallback: ((String, String) -> Unit)? = null
+    private var connectionCallback: ((Boolean) -> Unit)? = null
 
     fun connect() {
         val options = MqttConnectOptions().apply {
@@ -28,17 +29,20 @@ class MqttClient @Inject constructor(
             mqttClient.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d("MqttClient", "Bağlantı başarılı")
+                    connectionCallback?.invoke(true)
                     subscribeToTopics()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.e("MqttClient", "Bağlantı hatası", exception)
+                    connectionCallback?.invoke(false)
                 }
             })
 
             mqttClient.setCallback(object : MqttCallback {
                 override fun connectionLost(cause: Throwable?) {
                     Log.e("MqttClient", "Bağlantı koptu", cause)
+                    connectionCallback?.invoke(false)
                 }
 
                 override fun messageArrived(topic: String?, message: MqttMessage?) {
@@ -55,11 +59,16 @@ class MqttClient @Inject constructor(
             })
         } catch (e: Exception) {
             Log.e("MqttClient", "Bağlantı hatası", e)
+            connectionCallback?.invoke(false)
         }
     }
 
     fun setCallback(callback: (String, String) -> Unit) {
         messageCallback = callback
+    }
+
+    fun setConnectionCallback(callback: (Boolean) -> Unit) {
+        connectionCallback = callback
     }
 
     private fun subscribeToTopics() {
@@ -107,17 +116,10 @@ class MqttClient @Inject constructor(
 
     fun disconnect() {
         try {
-            mqttClient.disconnect(null, object : IMqttActionListener {
-                override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d("MqttClient", "Bağlantı kapatıldı")
-                }
-
-                override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    Log.e("MqttClient", "Bağlantı kapatma hatası", exception)
-                }
-            })
+            mqttClient.disconnect()
+            connectionCallback?.invoke(false)
         } catch (e: Exception) {
-            Log.e("MqttClient", "Bağlantı kapatma hatası", e)
+            Log.e("MqttClient", "Bağlantı kesme hatası", e)
         }
     }
 } 

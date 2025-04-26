@@ -21,7 +21,7 @@ float currentTemp = 0;
 float targetTemp = 21;
 bool isHeating = false;
 unsigned long lastTemp = 0;
-const long tempInterval = 30000; // 30 saniye
+const long tempInterval = 60000; // 1 dakika
 
 void setup() {
     Serial.begin(115200);
@@ -59,6 +59,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
     else if (String(topic) == "valve/schedules") {
         processSchedules(message);
+    }
+    else if (String(topic) == "valve/update_interval") {
+        setUpdateInterval(message);
     }
 }
 
@@ -111,29 +114,31 @@ void loop() {
     if (currentMillis - lastTemp >= tempInterval) {
         lastTemp = currentMillis;
         
-        float newTemp = dht.readTemperature();
-        if (!isnan(newTemp)) {
-            currentTemp = newTemp;
-            
-            char tempStr[10];
-            dtostrf(currentTemp, 4, 2, tempStr);
-            client.publish("valve/temperature", tempStr);
-            
-            checkHeating();
-        }
+        // Sıcaklık ve nem verilerini JSON formatında gönder
+        StaticJsonDocument<200> doc;
         
+        float newTemp = dht.readTemperature();
         float outsideTemp = outsideDht.readTemperature();
         float humidity = outsideDht.readHumidity();
         
-        if (!isnan(outsideTemp) && !isnan(humidity)) {
-            char outsideTempStr[10];
-            char humidityStr[10];
-            dtostrf(outsideTemp, 4, 2, outsideTempStr);
-            dtostrf(humidity, 4, 2, humidityStr);
-            
-            client.publish("valve/outside_temperature", outsideTempStr);
-            client.publish("valve/humidity", humidityStr);
+        if (!isnan(newTemp)) {
+            currentTemp = newTemp;
+            doc["temperature"] = currentTemp;
+            doc["isHeating"] = isHeating;
         }
+        
+        if (!isnan(outsideTemp) && !isnan(humidity)) {
+            doc["outsideTemperature"] = outsideTemp;
+            doc["humidity"] = humidity;
+        }
+        
+        doc["timestamp"] = millis();
+        
+        String jsonString;
+        serializeJson(doc, jsonString);
+        client.publish("valve/data", jsonString.c_str());
+        
+        checkHeating();
     }
 }
 
@@ -142,8 +147,16 @@ void reconnect() {
         if (client.connect("ESP8266Client")) {
             client.subscribe("valve/target_temperature");
             client.subscribe("valve/schedules");
+            client.subscribe("valve/update_interval");
         } else {
             delay(5000);
         }
+    }
+}
+
+void setUpdateInterval(String message) {
+    long newInterval = message.toInt() * 1000; // saniye cinsinden
+    if (newInterval >= 10000 && newInterval <= 300000) { // 10 sn ile 5 dk arası
+        tempInterval = newInterval;
     }
 } 

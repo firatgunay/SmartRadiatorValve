@@ -3,10 +3,11 @@ package com.firatgunay.smartradiatorvalve.di
 import android.content.Context
 import com.firatgunay.smartradiatorvalve.data.local.AppDatabase
 import com.firatgunay.smartradiatorvalve.data.local.dao.ScheduleDao
+import com.firatgunay.smartradiatorvalve.data.local.dao.ValveDataDao
 import com.firatgunay.smartradiatorvalve.ml.TemperaturePredictor
-import com.firatgunay.smartradiatorvalve.data.repository.ValveRepository
+import com.firatgunay.smartradiatorvalve.data.repository.ValveDataRepository
 import com.firatgunay.smartradiatorvalve.mqtt.MqttClient
-import com.firatgunay.smartradiatorvalve.mqtt.WebSocketClient
+import com.firatgunay.smartradiatorvalve.websocket.WebSocketClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import dagger.Module
@@ -66,12 +67,18 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideValveRepository(
+    fun provideValveDataDao(database: AppDatabase): ValveDataDao {
+        return database.valveDataDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideValveDataRepository(
+        valveDataDao: ValveDataDao,
         mqttClient: MqttClient,
-        scheduleDao: ScheduleDao,
-        temperaturePredictor: TemperaturePredictor
-    ): ValveRepository {
-        return ValveRepository(mqttClient, scheduleDao, temperaturePredictor)
+        webSocketClient: WebSocketClient
+    ): ValveDataRepository {
+        return ValveDataRepository(valveDataDao, mqttClient, webSocketClient)
     }
 
     @Provides
