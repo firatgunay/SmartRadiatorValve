@@ -108,36 +108,27 @@ class ValveRepository @Inject constructor(
     private fun startOptimalTemperatureUpdates() {
         updateJob?.cancel()
         updateJob = scope.launch {
-            while(isActive) {
+            while (isActive) {
                 try {
-                    updateOptimalTemperature()
-                    delay(30 * 60 * 1000) // 30 dakika
+                    val currentStatus = deviceStatus.value
+                    val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                    
+                    val optimalTemp = temperaturePredictor.predictOptimalTemperature(
+                        currentTemp = currentStatus.currentTemperature,
+                        outsideTemp = currentStatus.outsideTemperature,
+                        humidity = currentStatus.humidity,
+                        hour = currentHour
+                    )
+                    
+                    // Optimal sıcaklığı MQTT üzerinden ESP8266'ya gönder
+                    mqttClient.publishMessage("valve/target_temperature", optimalTemp.toString())
+                    
+                    delay(15 * 60 * 1000) // 15 dakikada bir güncelle
                 } catch (e: Exception) {
-                    Log.e("ValveRepository", "Optimal sıcaklık güncelleme hatası", e)
+                    Log.e("ValveRepository", "Optimal sıcaklık hesaplama hatası", e)
                     delay(60 * 1000) // Hata durumunda 1 dakika bekle
                 }
             }
-        }
-    }
-
-    private fun updateOptimalTemperature() {
-        try {
-            val status = _deviceStatus.value
-            val timeOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-            val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
-
-            val optimalTemp = temperaturePredictor.predictOptimalTemperature(
-                status.currentTemperature,
-                status.outsideTemperature,
-                status.humidity,
-                timeOfDay,
-                dayOfWeek
-            )
-
-            mqttClient.publishMessage("valve/target_temperature", optimalTemp.toString())
-            _deviceStatus.update { it.copy(targetTemperature = optimalTemp) }
-        } catch (e: Exception) {
-            Log.e("ValveRepository", "Optimal sıcaklık hesaplama hatası", e)
         }
     }
 
