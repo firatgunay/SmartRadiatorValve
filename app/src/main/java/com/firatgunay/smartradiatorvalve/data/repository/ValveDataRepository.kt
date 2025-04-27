@@ -37,14 +37,9 @@ class ValveDataRepository @Inject constructor(
             when (topic) {
                 "valve/data" -> processValveData(message)
                 "valve/temperature" -> processTemperature(message)
-                "valve/outside_temperature" -> processOutsideTemperature(message)
                 "valve/humidity" -> processHumidity(message)
-                "valve/status" -> processHeatingStatus(message)
+                "valve/status" -> processValveStatus(message)
             }
-        }
-
-        mqttClient.setConnectionCallback { isConnected ->
-            _connectionStatus.value = isConnected
         }
 
         // MQTT bağlantısını başlat
@@ -56,9 +51,8 @@ class ValveDataRepository @Inject constructor(
             val json = JSONObject(jsonString)
             val data = ValveData(
                 temperature = json.optDouble("temperature", 0.0).toFloat(),
-                outsideTemperature = json.optDouble("outsideTemperature", 0.0).toFloat(),
                 humidity = json.optDouble("humidity", 0.0).toFloat(),
-                isHeating = json.optBoolean("isHeating", false),
+                isValveOpen = json.optBoolean("isValveOpen", false),
                 timestamp = Date().time
             )
             
@@ -80,15 +74,6 @@ class ValveDataRepository @Inject constructor(
         }
     }
 
-    private fun processOutsideTemperature(message: String) {
-        message.toFloatOrNull()?.let { temp ->
-            _currentData.value = _currentData.value?.copy(
-                outsideTemperature = temp,
-                timestamp = Date().time
-            ) ?: ValveData(outsideTemperature = temp, timestamp = Date().time)
-        }
-    }
-
     private fun processHumidity(message: String) {
         message.toFloatOrNull()?.let { humidity ->
             _currentData.value = _currentData.value?.copy(
@@ -98,12 +83,12 @@ class ValveDataRepository @Inject constructor(
         }
     }
 
-    private fun processHeatingStatus(message: String) {
-        val isHeating = message.equals("true", ignoreCase = true)
+    private fun processValveStatus(message: String) {
+        val isValveOpen = message.equals("1", ignoreCase = true)
         _currentData.value = _currentData.value?.copy(
-            isHeating = isHeating,
+            isValveOpen = isValveOpen,
             timestamp = Date().time
-        ) ?: ValveData(isHeating = isHeating, timestamp = Date().time)
+        ) ?: ValveData(isValveOpen = isValveOpen, timestamp = Date().time)
     }
 
     fun setTargetTemperature(temperature: Float) {

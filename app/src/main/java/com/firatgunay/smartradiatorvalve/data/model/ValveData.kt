@@ -8,8 +8,7 @@ data class ValveData(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val temperature: Float = 0f,
-    val outsideTemperature: Float = 0f,
     val humidity: Float = 0f,
-    val isHeating: Boolean = false,
-    val timestamp: Long = 0
+    val isValveOpen: Boolean = false,
+    val timestamp: Long = System.currentTimeMillis()
 ) 

@@ -2,161 +2,129 @@ package com.firatgunay.smartradiatorvalve.mqtt
 
 import android.content.Context
 import android.util.Log
-import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
-import java.util.UUID
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import javax.inject.Inject
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Singleton
 
+@Singleton
 class MqttClient @Inject constructor(
     private val context: Context
 ) {
-    private val mqttClient = MqttAndroidClient(
-        context,
-        "tcp://broker.hivemq.com:1883",
-        "android_${UUID.randomUUID()}"
-    )
-
-    private var messageCallback: ((String, String) -> Unit)? = null
-    private var connectionCallback: ((Boolean) -> Unit)? = null
+    private var mqttClient: MqttAsyncClient? = null
+    private var callback: ((String, String) -> Unit)? = null
     
-    private val _connectionStatus = MutableStateFlow(false)
-    val connectionStatus: StateFlow<Boolean> = _connectionStatus.asStateFlow()
-
-    // MQTT Topics
+    private val serverUri = "tcp://broker.hivemq.com:1883"
+    private val clientId = "AndroidApp_" + System.currentTimeMillis()
+    
     private val topics = arrayOf(
-        "valve/data",
-        "valve/temperature",
-        "valve/outside_temperature",
-        "valve/humidity",
-        "valve/status"
+        "valve/temperature",    // DHT11'den gelen sıcaklık verisi
+        "valve/humidity",       // DHT11'den gelen nem verisi
+        "valve/status",         // Valf durumu
+        "valve/lcd_display"     // LCD ekran durumu
     )
 
     fun connect() {
         try {
-            val options = MqttConnectOptions().apply {
-                isAutomaticReconnect = true
+            mqttClient = MqttAsyncClient(serverUri, clientId, MemoryPersistence())
+            
+            val connectOptions = MqttConnectOptions().apply {
                 isCleanSession = true
+                connectionTimeout = 30
+                keepAliveInterval = 60
+                isAutomaticReconnect = true
             }
 
-            mqttClient.connect(options, null, object : IMqttActionListener {
+            mqttClient?.setCallback(object : MqttCallback {
+                override fun connectionLost(cause: Throwable?) {
+                    Log.e("MQTT", "Bağlantı koptu", cause)
+                }
+
+                override fun messageArrived(topic: String?, message: MqttMessage?) {
+                    message?.let {
+                        val messageStr = String(it.payload)
+                        Log.d("MQTT", "Topic: $topic, Message: $messageStr")
+                        callback?.invoke(topic ?: "", messageStr)
+                    }
+                }
+
+                override fun deliveryComplete(token: IMqttDeliveryToken?) {
+                    Log.d("MQTT", "Mesaj iletildi")
+                }
+            })
+
+            mqttClient?.connect(connectOptions, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d(TAG, "MQTT bağlantısı başarılı")
-                    _connectionStatus.value = true
-                    connectionCallback?.invoke(true)
+                    Log.d("MQTT", "Bağlantı başarılı")
                     subscribeToTopics()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    Log.e(TAG, "MQTT bağlantı hatası", exception)
-                    _connectionStatus.value = false
-                    connectionCallback?.invoke(false)
+                    Log.e("MQTT", "Bağlantı hatası", exception)
                 }
             })
-
-            setupMqttCallback()
         } catch (e: Exception) {
-            Log.e(TAG, "MQTT bağlantı hatası", e)
-            _connectionStatus.value = false
-            connectionCallback?.invoke(false)
+            Log.e("MQTT", "MQTT client oluşturma hatası", e)
         }
-    }
-
-    private fun setupMqttCallback() {
-        mqttClient.setCallback(object : MqttCallback {
-            override fun connectionLost(cause: Throwable?) {
-                Log.e(TAG, "MQTT bağlantısı koptu", cause)
-                _connectionStatus.value = false
-                connectionCallback?.invoke(false)
-            }
-
-            override fun messageArrived(topic: String?, message: MqttMessage?) {
-                message?.let {
-                    val messageStr = String(it.payload)
-                    Log.d(TAG, "MQTT mesajı alındı: $topic -> $messageStr")
-                    messageCallback?.invoke(topic ?: "", messageStr)
-                }
-            }
-
-            override fun deliveryComplete(token: IMqttDeliveryToken?) {
-                Log.d(TAG, "MQTT mesajı iletildi")
-            }
-        })
     }
 
     private fun subscribeToTopics() {
         topics.forEach { topic ->
-            try {
-                mqttClient.subscribe(topic, 0, null, object : IMqttActionListener {
-                    override fun onSuccess(asyncActionToken: IMqttToken?) {
-                        Log.d(TAG, "Topic aboneliği başarılı: $topic")
-                    }
-
-                    override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        Log.e(TAG, "Topic aboneliği başarısız: $topic", exception)
-                    }
-                })
-            } catch (e: Exception) {
-                Log.e(TAG, "Topic aboneliği hatası: $topic", e)
-            }
-        }
-    }
-
-    fun setCallback(callback: (String, String) -> Unit) {
-        messageCallback = callback
-    }
-
-    fun setConnectionCallback(callback: (Boolean) -> Unit) {
-        connectionCallback = callback
-    }
-
-    fun publishMessage(topic: String, message: String, qos: Int = 0) {
-        try {
-            val mqttMessage = MqttMessage(message.toByteArray()).apply {
-                this.qos = qos
-                isRetained = false
-            }
-            
-            mqttClient.publish(topic, mqttMessage, null, object : IMqttActionListener {
+            mqttClient?.subscribe(topic, 0, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d(TAG, "Mesaj başarıyla gönderildi: $topic -> $message")
+                    Log.d("MQTT", "Topic'e abone olundu: $topic")
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    Log.e(TAG, "Mesaj gönderme hatası: $topic", exception)
+                    Log.e("MQTT", "Topic abonelik hatası: $topic", exception)
                 }
             })
-        } catch (e: Exception) {
-            Log.e(TAG, "Mesaj gönderme hatası", e)
         }
     }
 
-    fun setTargetTemperature(temperature: Float) {
-        publishMessage("valve/target_temperature", temperature.toString())
+    fun publishMessage(topic: String, message: String) {
+        try {
+            val mqttMessage = MqttMessage(message.toByteArray())
+            mqttClient?.publish(topic, mqttMessage, null, object : IMqttActionListener {
+                override fun onSuccess(asyncActionToken: IMqttToken?) {
+                    Log.d("MQTT", "Mesaj gönderildi - Topic: $topic, Message: $message")
+                }
+
+                override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                    Log.e("MQTT", "Mesaj gönderme hatası - Topic: $topic", exception)
+                }
+            })
+        } catch (e: Exception) {
+            Log.e("MQTT", "Mesaj yayınlama hatası", e)
+        }
+    }
+
+    fun setCallback(newCallback: (topic: String, message: String) -> Unit) {
+        callback = newCallback
     }
 
     fun disconnect() {
         try {
-            mqttClient.disconnect(null, object : IMqttActionListener {
-                override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d(TAG, "MQTT bağlantısı kapatıldı")
-                    _connectionStatus.value = false
-                    connectionCallback?.invoke(false)
-                }
-
-                override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    Log.e(TAG, "MQTT bağlantısı kapatılırken hata", exception)
-                }
-            })
+            mqttClient?.disconnect()
+            mqttClient = null
         } catch (e: Exception) {
-            Log.e(TAG, "MQTT bağlantısı kapatılırken hata", e)
+            Log.e("MQTT", "Bağlantı kesme hatası", e)
         }
     }
 
-    companion object {
-        private const val TAG = "MqttClient"
+    // LCD ekrana mesaj gönderme
+    fun updateLcdDisplay(line1: String, line2: String = "") {
+        val displayData = "$line1|$line2"
+        publishMessage("valve/lcd_display", displayData)
+    }
+
+    // Hedef sıcaklık ayarlama
+    fun setTargetTemperature(temperature: Float) {
+        publishMessage("valve/target_temperature", temperature.toString())
+    }
+
+    // Valf durumunu kontrol etme
+    fun setValveStatus(isOpen: Boolean) {
+        publishMessage("valve/control", if (isOpen) "1" else "0")
     }
 } 

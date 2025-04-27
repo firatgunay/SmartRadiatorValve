@@ -14,6 +14,7 @@ import kotlinx.serialization.json.Json
 import com.firatgunay.smartradiatorvalve.data.local.dao.ScheduleDao
 import com.firatgunay.smartradiatorvalve.ml.TemperaturePredictor
 import kotlinx.coroutines.flow.Flow
+import com.firatgunay.smartradiatorvalve.data.model.LcdDisplay
 
 
 @Singleton
@@ -37,18 +38,12 @@ class ValveRepository @Inject constructor(
     private fun setupMqttCallbacks() {
         try {
             mqttClient.setCallback { topic, message ->
+                Log.d("ESP_DATA", "Topic: $topic, Message: $message")
                 when (topic) {
                     "valve/temperature" -> {
                         message.toFloatOrNull()?.let { temp ->
                             _deviceStatus.update { currentStatus ->
-                                currentStatus.copy(currentTemperature = temp)
-                            }
-                        }
-                    }
-                    "valve/outside_temperature" -> {
-                        message.toFloatOrNull()?.let { temp ->
-                            _deviceStatus.update { currentStatus ->
-                                currentStatus.copy(outsideTemperature = temp)
+                                currentStatus.copy(temperature = temp)
                             }
                         }
                     }
@@ -60,9 +55,22 @@ class ValveRepository @Inject constructor(
                         }
                     }
                     "valve/status" -> {
-                        message.toBooleanStrictOrNull()?.let { isHeating ->
+                        message.toBooleanStrictOrNull()?.let { isOpen ->
                             _deviceStatus.update { currentStatus ->
-                                currentStatus.copy(isHeating = isHeating)
+                                currentStatus.copy(isValveOpen = isOpen)
+                            }
+                        }
+                    }
+                    "valve/lcd_display" -> {
+                        val parts = message.split("|")
+                        if (parts.size >= 2) {
+                            _deviceStatus.update { currentStatus ->
+                                currentStatus.copy(
+                                    lcdDisplay = LcdDisplay(
+                                        line1 = parts[0],
+                                        line2 = parts[1]
+                                    )
+                                )
                             }
                         }
                     }
@@ -114,8 +122,8 @@ class ValveRepository @Inject constructor(
                     val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                     
                     val optimalTemp = temperaturePredictor.predictOptimalTemperature(
-                        currentTemp = currentStatus.currentTemperature,
-                        outsideTemp = currentStatus.outsideTemperature,
+                        currentTemp = currentStatus.temperature,
+                        outsideTemp = currentStatus.temperature,
                         humidity = currentStatus.humidity,
                         hour = currentHour
                     )

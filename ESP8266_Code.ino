@@ -8,8 +8,8 @@
 #define VALVE_PIN 4
 #define OUTSIDE_DHTPIN 3  // Dış mekan sensörü için pin
 
-const char* ssid = "WiFi_SSID";
-const char* password = "WiFi_PASSWORD";
+const char* ssid = "1";
+const char* password = "szkk1712";
 const char* mqtt_server = "broker.hivemq.com";
 
 WiFiClient espClient;

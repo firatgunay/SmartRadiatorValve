@@ -2,6 +2,7 @@ package com.firatgunay.smartradiatorvalve.data.repository
 
 import android.util.Log
 import com.firatgunay.smartradiatorvalve.data.model.DeviceStatus
+import com.firatgunay.smartradiatorvalve.data.model.LcdDisplay
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -18,11 +19,11 @@ class DeviceRepository @Inject constructor(
 ) {
     private var statusListener: ValueEventListener? = null
 
-    fun updateDeviceStatus(temperature: Float, isHeating: Boolean) {
+    fun updateDeviceStatus(temperature: Float, isValveOpen: Boolean) {
         try {
             val updates = mapOf(
                 "temperature" to temperature,
-                "isHeating" to isHeating,
+                "isValveOpen" to isValveOpen,
                 "lastUpdate" to System.currentTimeMillis()
             )
             
@@ -42,13 +43,24 @@ class DeviceRepository @Inject constructor(
                 override fun onDataChange(snapshot: DataSnapshot) {
                     try {
                         val temperature = snapshot.child("temperature").getValue(Float::class.java) ?: 0f
-                        val isHeating = snapshot.child("isHeating").getValue(Boolean::class.java) ?: false
+                        val humidity = snapshot.child("humidity").getValue(Float::class.java) ?: 0f
+                        val isValveOpen = snapshot.child("isValveOpen").getValue(Boolean::class.java) ?: false
+                        val targetTemperature = snapshot.child("targetTemperature").getValue(Float::class.java) ?: 21f
                         val lastUpdate = snapshot.child("lastUpdate").getValue(Long::class.java) ?: System.currentTimeMillis()
+                        val isConnected = snapshot.child("isConnected").getValue(Boolean::class.java) ?: false
+                        
+                        // LCD ekran verilerini al
+                        val line1 = snapshot.child("lcd").child("line1").getValue(String::class.java) ?: ""
+                        val line2 = snapshot.child("lcd").child("line2").getValue(String::class.java) ?: ""
                         
                         val status = DeviceStatus(
-                            currentTemperature = temperature,
-                            isHeating = isHeating,
-                            lastUpdate = lastUpdate
+                            temperature = temperature,
+                            humidity = humidity,
+                            isValveOpen = isValveOpen,
+                            targetTemperature = targetTemperature,
+                            lastUpdate = lastUpdate,
+                            isConnected = isConnected,
+                            lcdDisplay = LcdDisplay(line1, line2)
                         )
                         trySend(status)
                     } catch (e: Exception) {
