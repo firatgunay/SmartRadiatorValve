@@ -7,8 +7,12 @@
       ".write": "auth != null"
     },
     "esp_status": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      ".read": true,
+      ".write": true
+    },
+    "valve_data": {
+      ".read": true,
+      ".write": true
     }
   }
 } 
