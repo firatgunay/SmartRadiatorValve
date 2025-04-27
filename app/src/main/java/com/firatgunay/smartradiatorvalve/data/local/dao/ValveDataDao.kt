@@ -15,6 +15,6 @@ interface ValveDataDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertData(data: ValveData)
     
-    @Query("DELETE FROM valve_data WHERE timestamp < :timestamp")
-    suspend fun deleteOldData(timestamp: Long)
+    @Query("DELETE FROM valve_data WHERE timestamp < :cutoffTime")
+    suspend fun deleteOldData(cutoffTime: Long)
 } 

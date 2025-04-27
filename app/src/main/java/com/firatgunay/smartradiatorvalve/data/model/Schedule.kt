@@ -38,12 +38,19 @@ data class Schedule(
     }
 }
 
-enum class DayOfWeek(val turkishName: String) {
-    MONDAY("Pazartesi"),
-    TUESDAY("Salı"),
-    WEDNESDAY("Çarşamba"),
-    THURSDAY("Perşembe"),
-    FRIDAY("Cuma"),
-    SATURDAY("Cumartesi"),
-    SUNDAY("Pazar")
+enum class DayOfWeek(val value: Int, val turkishName: String) {
+    MONDAY(1, "Pazartesi"),
+    TUESDAY(2, "Salı"),
+    WEDNESDAY(3, "Çarşamba"),
+    THURSDAY(4, "Perşembe"),
+    FRIDAY(5, "Cuma"),
+    SATURDAY(6, "Cumartesi"),
+    SUNDAY(7, "Pazar");
+
+    companion object {
+        fun fromValue(value: Int): DayOfWeek {
+            return values().find { it.value == value }
+                ?: throw IllegalArgumentException("Geçersiz gün değeri: $value")
+        }
+    }
 } 

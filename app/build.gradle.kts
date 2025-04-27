@@ -6,6 +6,7 @@ plugins {
     id("dagger.hilt.android.plugin")
     kotlin("kapt")
     id("com.google.devtools.ksp") version "2.0.21-1.0.27"
+    kotlin("plugin.serialization") version "1.9.22"
 }
 
 android {
@@ -46,6 +47,8 @@ android {
     buildFeatures {
         compose = true
     }
+
+
 }
 
 dependencies {

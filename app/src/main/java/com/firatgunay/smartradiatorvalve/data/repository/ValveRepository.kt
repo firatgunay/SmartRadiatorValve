@@ -1,6 +1,6 @@
 package com.firatgunay.smartradiatorvalve.data.repository
 
-import DeviceStatus
+import com.firatgunay.smartradiatorvalve.data.model.DeviceStatus
 import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -82,7 +82,7 @@ class ValveRepository @Inject constructor(
     }
 
     fun getSchedulesForDay(dayOfWeek: Int): Flow<List<Schedule>> {
-        return scheduleDao.getSchedulesForDay(dayOfWeek.toString())
+        return scheduleDao.getSchedulesForDay(dayOfWeek)
     }
 
     suspend fun addSchedule(schedule: Schedule) {
@@ -95,8 +95,8 @@ class ValveRepository @Inject constructor(
         publishScheduleUpdate()
     }
 
-    suspend fun deleteSchedule(scheduleId: Long) {
-        scheduleDao.deleteScheduleById(scheduleId)
+    suspend fun deleteSchedule(id: Long) {
+        scheduleDao.deleteScheduleById(id)
         publishScheduleUpdate()
     }
 
@@ -133,20 +133,16 @@ class ValveRepository @Inject constructor(
     }
 
     private suspend fun publishScheduleUpdate() {
-        withContext(Dispatchers.IO) {
-            try {
-                val allSchedules = scheduleDao.getAllSchedules()
-                val scheduleJson = Json.encodeToString(allSchedules)
-                mqttClient.publishMessage("valve/schedules", scheduleJson)
-                Log.d("ValveRepository", "Program güncellemesi yayınlandı")
-            } catch (e: Exception) {
-                Log.e("ValveRepository", "Program güncellemesi yayınlanırken hata", e)
-                throw e
-            }
+        try {
+            val schedules = scheduleDao.getAllSchedules()
+            val scheduleJson = Json.encodeToString(schedules)
+            mqttClient.publishMessage("valve/schedules", scheduleJson)
+        } catch (e: Exception) {
+            Log.e("ValveRepository", "Program güncellemesi yayınlanırken hata", e)
         }
     }
 
-    fun cleanup() {
+    suspend fun cleanup() {
         try {
             updateJob?.cancel()
             updateJob = null

@@ -10,13 +10,16 @@ import com.firatgunay.smartradiatorvalve.data.model.Schedule
 import com.firatgunay.smartradiatorvalve.data.model.ValveData
 
 @Database(
-    entities = [Schedule::class, ValveData::class],
-    version = 2,
-    exportSchema = false // Schema export'u devre dışı bırak
+    entities = [
+        ValveData::class,
+        Schedule::class
+    ],
+    version = 1,
+    exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun scheduleDao(): ScheduleDao
     abstract fun valveDataDao(): ValveDataDao
+    abstract fun scheduleDao(): ScheduleDao
 
     companion object {
         @Volatile
@@ -27,8 +30,10 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "app_database"
-                ).build()
+                    "smart_radiator_db"
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

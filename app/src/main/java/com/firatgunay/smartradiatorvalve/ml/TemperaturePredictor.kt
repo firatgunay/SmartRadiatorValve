@@ -1,54 +1,37 @@
 package com.firatgunay.smartradiatorvalve.ml
 
 import android.content.Context
-import org.tensorflow.lite.Interpreter
-import java.io.File
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import javax.inject.Inject
 
 class TemperaturePredictor @Inject constructor(
     private val context: Context
 ) {
-    private var interpreter: Interpreter? = null
-    
-    init {
-        loadModel()
-    }
-    
-    private fun loadModel() {
-        try {
-            val modelFile = File(context.getExternalFilesDir(null), "temperature_model.tflite")
-            interpreter = Interpreter(modelFile)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    
     fun predictOptimalTemperature(
         currentTemp: Float,
         outsideTemp: Float,
         humidity: Float,
         hour: Int
     ): Float {
-        val inputBuffer = ByteBuffer.allocateDirect(4 * 4) // 4 input features * 4 bytes per float
-        inputBuffer.order(ByteOrder.nativeOrder())
+        // Basit bir sıcaklık tahmin algoritması
+        // Bu algoritmayı ihtiyaçlarınıza göre geliştirebilirsiniz
         
-        inputBuffer.putFloat(currentTemp)
-        inputBuffer.putFloat(outsideTemp)
-        inputBuffer.putFloat(humidity)
-        inputBuffer.putFloat(hour.toFloat())
+        // Gece saatlerinde (22:00 - 06:00) sıcaklığı düşür
+        val isNightTime = hour in 22..23 || hour in 0..6
+        val nightReduction = if (isNightTime) 2f else 0f
         
-        val outputBuffer = ByteBuffer.allocateDirect(4) // 1 output * 4 bytes per float
-        outputBuffer.order(ByteOrder.nativeOrder())
+        // Dış sıcaklık çok düşükse iç sıcaklığı biraz artır
+        val coldCompensation = if (outsideTemp < 5) 1f else 0f
         
-        interpreter?.run(inputBuffer, outputBuffer)
+        // Nem oranı yüksekse sıcaklığı biraz düşür
+        val humidityCompensation = if (humidity > 70) -0.5f else 0f
         
-        outputBuffer.rewind()
-        return outputBuffer.float
+        // Baz sıcaklık 21 derece
+        val baseTemperature = 21f
+        
+        return baseTemperature + coldCompensation + humidityCompensation - nightReduction
     }
-    
+
     fun cleanup() {
-        interpreter?.close()
+        // Gerekirse kaynakları temizle
     }
 } 

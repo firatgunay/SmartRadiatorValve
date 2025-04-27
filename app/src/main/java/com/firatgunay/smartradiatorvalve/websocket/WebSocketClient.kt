@@ -20,28 +20,28 @@ class WebSocketClient @Inject constructor(
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 super.onOpen(webSocket, response)
-                Log.d("WebSocketClient", "Bağlantı açıldı")
+                Log.d(TAG, "WebSocket bağlantısı açıldı")
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 super.onMessage(webSocket, text)
-                Log.d("WebSocketClient", "Mesaj alındı: $text")
+                Log.d(TAG, "WebSocket mesajı alındı: $text")
                 messageCallback?.invoke(text)
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 super.onClosing(webSocket, code, reason)
-                Log.d("WebSocketClient", "Bağlantı kapanıyor: $reason")
+                Log.d(TAG, "WebSocket bağlantısı kapanıyor: $reason")
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 super.onClosed(webSocket, code, reason)
-                Log.d("WebSocketClient", "Bağlantı kapandı: $reason")
+                Log.d(TAG, "WebSocket bağlantısı kapandı: $reason")
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 super.onFailure(webSocket, t, response)
-                Log.e("WebSocketClient", "Bağlantı hatası", t)
+                Log.e(TAG, "WebSocket bağlantı hatası", t)
             }
         })
     }
@@ -59,7 +59,11 @@ class WebSocketClient @Inject constructor(
             webSocket?.close(1000, "Bağlantı kapatılıyor")
             client.dispatcher.executorService.shutdown()
         } catch (e: Exception) {
-            Log.e("WebSocketClient", "Bağlantı kapatma hatası", e)
+            Log.e(TAG, "WebSocket bağlantısı kapatılırken hata", e)
         }
+    }
+
+    companion object {
+        private const val TAG = "WebSocketClient"
     }
 } 

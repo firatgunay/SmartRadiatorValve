@@ -1,10 +1,12 @@
 package com.firatgunay.smartradiatorvalve.ui.schedule
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -42,12 +44,11 @@ fun ScheduleScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // Günler
-            DaysRow(
+            // Gün seçici
+            DaySelector(
                 selectedDay = selectedDay,
                 onDaySelected = { day ->
-                    Log.d("ScheduleScreen", "Seçilen gün: $day")
-                    viewModel.setSelectedDay(day)
+                    viewModel.setSelectedDay(day.value)
                 }
             )
 
@@ -94,7 +95,8 @@ fun ScheduleScreen(
                         items(schedules) { schedule ->
                             ScheduleItem(
                                 schedule = schedule,
-                                onDelete = { viewModel.deleteSchedule(schedule.id) }
+                                onDelete = { viewModel.deleteSchedule(schedule) },
+                                onEdit = { viewModel.editSchedule(schedule) }
                             )
                         }
                     }
@@ -103,7 +105,7 @@ fun ScheduleScreen(
 
             // Program ekle butonu
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { viewModel.createNewSchedule(selectedDay) },
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(16.dp)
@@ -126,54 +128,51 @@ fun ScheduleScreen(
 }
 
 @Composable
-fun DaysRow(
+fun DaySelector(
     selectedDay: Int,
-    onDaySelected: (Int) -> Unit
+    onDaySelected: (DayOfWeek) -> Unit
 ) {
-    Row(
+    LazyRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        DayOfWeek.values().forEach { day ->
-            val dayNumber = day.ordinal + 1
-            val isSelected = dayNumber == selectedDay
-            
-            Button(
-                onClick = { 
-                    Log.d("DaysRow", "Tıklanan gün: $dayNumber")
-                    onDaySelected(dayNumber) 
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) 
-                        MaterialTheme.colorScheme.primary 
-                    else 
-                        MaterialTheme.colorScheme.surface,
-                    contentColor = if (isSelected) 
-                        MaterialTheme.colorScheme.onPrimary 
-                    else 
-                        MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp)
-            ) {
-                Text(
-                    text = day.turkishName,
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            }
+        items(DayOfWeek.values()) { day ->
+            DayChip(
+                day = day,
+                isSelected = selectedDay == day.value,
+                onClick = { onDaySelected(day) }
+            )
         }
+    }
+}
+
+@Composable
+fun DayChip(
+    day: DayOfWeek,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Text(
+            text = day.turkishName,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
 @Composable
 fun ScheduleItem(
     schedule: Schedule,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier

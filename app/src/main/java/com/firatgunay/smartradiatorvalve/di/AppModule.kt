@@ -4,8 +4,10 @@ import android.content.Context
 import com.firatgunay.smartradiatorvalve.data.local.AppDatabase
 import com.firatgunay.smartradiatorvalve.data.local.dao.ScheduleDao
 import com.firatgunay.smartradiatorvalve.data.local.dao.ValveDataDao
+import com.firatgunay.smartradiatorvalve.data.repository.ScheduleRepository
 import com.firatgunay.smartradiatorvalve.ml.TemperaturePredictor
 import com.firatgunay.smartradiatorvalve.data.repository.ValveDataRepository
+import com.firatgunay.smartradiatorvalve.data.repository.ValveRepository
 import com.firatgunay.smartradiatorvalve.mqtt.MqttClient
 import com.firatgunay.smartradiatorvalve.websocket.WebSocketClient
 import com.google.firebase.auth.FirebaseAuth
@@ -75,15 +77,32 @@ object AppModule {
     @Singleton
     fun provideValveDataRepository(
         valveDataDao: ValveDataDao,
-        mqttClient: MqttClient,
-        webSocketClient: WebSocketClient
+        mqttClient: MqttClient
     ): ValveDataRepository {
-        return ValveDataRepository(valveDataDao, mqttClient, webSocketClient)
+        return ValveDataRepository(valveDataDao, mqttClient)
     }
 
     @Provides
     @Singleton
     fun provideWebSocketClient(@ApplicationContext context: Context): WebSocketClient {
         return WebSocketClient(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideValveRepository(
+        mqttClient: MqttClient,
+        scheduleDao: ScheduleDao,
+        temperaturePredictor: TemperaturePredictor
+    ): ValveRepository {
+        return ValveRepository(mqttClient, scheduleDao, temperaturePredictor)
+    }
+
+    @Provides
+    @Singleton
+    fun provideScheduleRepository(
+        scheduleDao: ScheduleDao
+    ): ScheduleRepository {
+        return ScheduleRepository(scheduleDao)
     }
 } 

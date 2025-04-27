@@ -7,9 +7,9 @@ import androidx.room.PrimaryKey
 data class ValveData(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val temperature: Float,
-    val outsideTemperature: Float,
-    val humidity: Float,
-    val isHeating: Boolean,
-    val timestamp: Long = System.currentTimeMillis()
+    val temperature: Float = 0f,
+    val outsideTemperature: Float = 0f,
+    val humidity: Float = 0f,
+    val isHeating: Boolean = false,
+    val timestamp: Long = 0
 ) 

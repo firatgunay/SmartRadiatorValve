@@ -3,25 +3,28 @@ package com.firatgunay.smartradiatorvalve.ui.schedule
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.firatgunay.smartradiatorvalve.data.local.dao.ScheduleDao
 import com.firatgunay.smartradiatorvalve.data.model.Schedule
+import com.firatgunay.smartradiatorvalve.data.model.DayOfWeek
 import com.firatgunay.smartradiatorvalve.data.repository.ValveRepository
+import com.firatgunay.smartradiatorvalve.data.repository.ScheduleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.util.Calendar
 
 private const val TAG = "ScheduleViewModel"
 
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
-    private val valveRepository: ValveRepository
+    private val valveRepository: ValveRepository,
+    private val scheduleRepository: ScheduleRepository
 ) : ViewModel() {
 
     private val _schedules = MutableStateFlow<List<Schedule>>(emptyList())
     val schedules: StateFlow<List<Schedule>> = _schedules.asStateFlow()
 
-    private val _selectedDay = MutableStateFlow(1) // Pazartesi
+    private val _selectedDay = MutableStateFlow(getCurrentDayOfWeek())
     val selectedDay: StateFlow<Int> = _selectedDay.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
@@ -43,9 +46,9 @@ class ScheduleViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                valveRepository.getSchedulesForDay(_selectedDay.value)
-                    .collect { schedules ->
-                        _schedules.value = schedules
+                scheduleRepository.getSchedulesForDay(_selectedDay.value)
+                    .collect { scheduleList ->
+                        _schedules.value = scheduleList
                         _error.value = null
                     }
             } catch (e: Exception) {
@@ -60,7 +63,7 @@ class ScheduleViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _isLoading.value = true
-                valveRepository.insertSchedule(schedule)
+                scheduleRepository.insertSchedule(schedule)
                 loadSchedules()
             } catch (e: Exception) {
                 _error.value = "Program eklenirken bir hata oluştu: ${e.message}"
@@ -70,10 +73,11 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
-    fun deleteSchedule(id: Long) {
+    fun deleteSchedule(schedule: Schedule) {
         viewModelScope.launch {
             try {
-                valveRepository.deleteSchedule(id)
+                scheduleRepository.deleteSchedule(schedule)
+                loadSchedules()
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = "Program silinirken hata oluştu: ${e.message}"
@@ -81,14 +85,14 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
-    fun updateSchedule(schedule: Schedule) {
+    fun editSchedule(schedule: Schedule) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _error.value = null
                 Log.d(TAG, "Program güncelleniyor: $schedule")
                 
-                valveRepository.updateSchedule(schedule)
+                scheduleRepository.updateSchedule(schedule)
                 
                 Log.d(TAG, "Program başarıyla güncellendi")
                 loadSchedules()
@@ -99,6 +103,18 @@ class ScheduleViewModel @Inject constructor(
                 _isLoading.value = false
             }
         }
+    }
+
+    fun createNewSchedule(dayOfWeek: Int) {
+        viewModelScope.launch {
+            val newSchedule = Schedule.createDefault(dayOfWeek)
+            scheduleRepository.insertSchedule(newSchedule)
+            loadSchedules()
+        }
+    }
+
+    private fun getCurrentDayOfWeek(): Int {
+        return Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
     }
 
     override fun onCleared() {

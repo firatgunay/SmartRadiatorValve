@@ -1,4 +1,7 @@
+package com.firatgunay.smartradiatorvalve.data.repository
+
 import android.util.Log
+import com.firatgunay.smartradiatorvalve.data.model.DeviceStatus
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -38,8 +41,16 @@ class DeviceRepository @Inject constructor(
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     try {
-                        val status = snapshot.getValue(DeviceStatus::class.java)
-                        status?.let { trySend(it) }
+                        val temperature = snapshot.child("temperature").getValue(Float::class.java) ?: 0f
+                        val isHeating = snapshot.child("isHeating").getValue(Boolean::class.java) ?: false
+                        val lastUpdate = snapshot.child("lastUpdate").getValue(Long::class.java) ?: System.currentTimeMillis()
+                        
+                        val status = DeviceStatus(
+                            currentTemperature = temperature,
+                            isHeating = isHeating,
+                            lastUpdate = lastUpdate
+                        )
+                        trySend(status)
                     } catch (e: Exception) {
                         Log.e("DeviceRepository", "Veri okuma hatası", e)
                     }
